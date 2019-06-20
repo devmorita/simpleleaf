@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
     Leafee OpenClose notification receiver program
+    USAGE   : python lf.py {leafee device address} {device no} {options: print / debug / save / sqlite}
+    EXAMPLE : python lf.py "xx:xx:xx:xx:xx:xx" 1 print save sqlite
 """
 
 from bluepy.btle import Peripheral
@@ -11,7 +13,6 @@ import sqlite3
 import os
 
 # Leafee address
-LEAFEE_ADDR = ("xx:xx:xx:xx:xx:xx", "xx:xx:xx:xx:xx:xx");
 LeafeeId = 0;
 LeafeeAddr = "";
 Options = [];
@@ -71,12 +72,17 @@ def insertdb(devid, isclose, method = 0):
         conn.close()
 
     if ('print' in Options or 'debug' in Options):
-        print "[DEVICE : " + data[0] + "][isClose : " + data[1] + "][isStartup : " + data[2] + "]" 
+        # print "[DEVICE : " + data[0] + "][isClose : " + data[1] + "][isStartup : " + data[2] + "]" 
+        # print '[DEVICE : %s][isClose : %s][isStartup : %s]' % (data[0], data[1], data[2])
+        print '[DEVICE : %s][isClose : %s][isStartup : %s]' % data
 
 
 def main(args):
 
     if (len(args) < 3):
+        print 'USAGE  : python %s {leafee device address} {device no} {print|debug|save sqlite}' % sys.argv[0]
+        print 'EXAMPLE: python %s xx:xx:xx:xx:xx:xx 1 print save sqlite' % sys.argv[0]
+        print 'example : python %s "5D:FC:4F:4E:E5:37" 1 print save sqlite' % sys.argv[0]
         sys.exit(1)
 
     # args[1] = BLE MAC address 
@@ -102,7 +108,12 @@ def main(args):
     isclose = int(binascii.b2a_hex(data))
     insertdb(LeafeeId, isclose, 1)
 
-    # start notification 
+    # read the battery info
+    battery = int(binascii.b2a_hex(leaf.getCharacteristics(13,16)[0].read()), 16)
+    if ('print' in Options or 'debug' in Options):
+        print '[DEVICE : %s][Battery : %s%%]' % (LeafeeId, battery)
+
+    # start notification
     leaf.writeCharacteristic(0x002b, "\x01\x00", True)
 
     # start receiving 
